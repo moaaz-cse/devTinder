@@ -10,6 +10,7 @@ const app = express(); //creating a new expressjs application/web-server.
 // This app.get() will only handle GET call to /user
 app.get("/user", (req, res) => {
   // res.send("user data is fetched.");
+  console.log(req.query);//how we read query parameter.
   res.send({ firstName: "Moaaz", lastName: "Ahmed" });
 });
 
