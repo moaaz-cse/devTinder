@@ -1,18 +1,36 @@
 const express = require("express");
-
-const { connectDB } = require("./config/database");
+const connectDB = require("./config/database");
 // require("./config/database"); //bcz of this database.js will also run when we run app.js
 const app = express();
+const User = require("./models/user"); //to import model we should not use {User}
+
+//Making a POST request to save data into database/.
+app.post("/signup", async (req, res) => {
+  // Creating a new instance of user model with data.
+  const user = new User({
+    firstName: "Zaki",
+    lastName: "Ahmed",
+    emailId: "zaki123@gmail.com",
+    age: 25,
+    gender: "Male",
+  });
+  try {
+    await user.save(); //user.save is a function that return a promise so we need to make the callback function as async.
+    res.send("User Add Successfully.");
+  } catch (err) {
+    res.status(400).send("Error saving the user: ", +err.message);
+  }
+});
 
 connectDB()
   .then(() => {
     console.log("Database Connection established");
-    app.listen(4000, () => {
-      console.log("Server is successfully on port 4000...");
+    app.listen(7777, () => {
+      console.log("Server is successfully on port 7777...");
     });
   })
-  .catch((error) => {
-    console.error("Database Connection failed.");
+  .catch((err) => {
+    console.error("Database cannot be connected!!");
   });
 
 // All below code was for lerning concepts upto lecture 18.
