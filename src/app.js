@@ -1,3 +1,20 @@
+const express = require("express");
+
+const { connectDB } = require("./config/database");
+// require("./config/database"); //bcz of this database.js will also run when we run app.js
+const app = express();
+
+connectDB()
+  .then(() => {
+    console.log("Database Connection established");
+    app.listen(4000, () => {
+      console.log("Server is successfully on port 4000...");
+    });
+  })
+  .catch((error) => {
+    console.error("Database Connection failed.");
+  });
+
 // All below code was for lerning concepts upto lecture 18.
 // const express = require("express");
 
