@@ -1,24 +1,50 @@
 const express = require("express");
 const connectDB = require("./config/database");
+
 // require("./config/database"); //bcz of this database.js will also run when we run app.js
 const app = express();
 const User = require("./models/user"); //to import model we should not use {User}
 
+//Adding a pre-defined middleware that convert the json object to javascript object for api calls.
+app.use(express.json()); //this app.use() will ensure this middleware to work for all path/type of api calls.
+
 //Making a POST request to save data into database/.
 app.post("/signup", async (req, res) => {
   // Creating a new instance of user model with data.
-  const user = new User({
-    firstName: "Zaki",
-    lastName: "Ahmed",
-    emailId: "zaki123@gmail.com",
-    age: 25,
-    gender: "Male",
-  });
+  // console.log(req.body);
+  const user = new User(req.body);
   try {
     await user.save(); //user.save is a function that return a promise so we need to make the callback function as async.
     res.send("User Add Successfully.");
   } catch (err) {
     res.status(400).send("Error saving the user: ", +err.message);
+  }
+});
+
+//Making a GET API, to filter database.
+app.get("/user", async (req, res) => {
+  const usersEmailId = req.body.emailId;
+  try {
+    const users = await User.findOne({ emailId: usersEmailId }); //findOne will give the first matched(basically one which was saved earlier) data only, find will give all the matched data present in database.
+    // console.log(users);
+
+    if (users.length === 0) {
+      res.status(404).send("User not found!!");
+    } else {
+      res.send(users);
+    }
+  } catch (err) {
+    res.status(400).send("Something went wrong!");
+  }
+});
+
+// Feed API - GET/feed -get all user form the database.
+app.get("/feed", async (req, res) => {
+  try {
+    const users = await User.find({});
+    res.send(users);
+  } catch (err) {
+    res.status(400).send("Something went wrong!");
   }
 });
 
