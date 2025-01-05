@@ -1,9 +1,10 @@
 const express = require("express");
 const connectDB = require("./config/database");
-
 // require("./config/database"); //bcz of this database.js will also run when we run app.js
 const app = express();
 const User = require("./models/user"); //to import model we should not use {User}
+const bcrypt = require("bcrypt");
+const { validateSignupData } = require("./utils/validation");
 
 // connectDB.user.createIndex({ emailId: 1 }, { unique: true });
 
@@ -13,9 +14,24 @@ app.use(express.json()); //this app.use() will ensure this middleware to work fo
 //Making a POST request to save data into database/.
 app.post("/signup", async (req, res) => {
   // Creating a new instance of user model with data.
-  // console.log(req.body);
-  const user = new User(req.body);
   try {
+    //Valdation of data.
+    validateSignupData(req);
+
+    // Encrypting the password
+    const { firstName, lastName, emailId, password } = req.body;
+    const passwordHash = await bcrypt.hash(password, 10);
+    console.log(passwordHash);
+
+    // console.log(req.body);
+    // const user = new User(req.body);
+    const user = new User({
+      firstName,
+      lastName,
+      emailId,
+      password: passwordHash,
+    });
+
     //{ runValidators: true } this in user.save() will ensure emailId is of valid type. Removed as in user.js(models) have used npm validator.
     await user.save(); //user.save is a function that return a promise so we need to make the callback function as async.
     res.send("User Add Successfully.");
@@ -23,7 +39,7 @@ app.post("/signup", async (req, res) => {
     if (err.code === 11000) {
       res.status(400).send("Duplicate email ID found!");
     } else {
-      res.status(400).send("Error saving the user: " + err.message);
+      res.status(400).send("ERROR : " + err.message);
     }
   }
 });
@@ -79,13 +95,7 @@ app.patch("/user/:userId", async (req, res) => {
   const data = req.body;
   try {
     //Do sanitization of data.
-    const ALLOWED_UPDATES = [
-      "skills",
-      "photoUrl",
-      "about",
-      "gender",
-      "age",
-    ];
+    const ALLOWED_UPDATES = ["skills", "photoUrl", "about", "gender", "age"];
     const isUpdateAllowed = Object.keys(data).every((key) =>
       ALLOWED_UPDATES.includes(key)
     );
