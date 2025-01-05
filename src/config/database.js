@@ -8,4 +8,3 @@ const connectDB = async () => {
 }; //mongoose.connect() will give a promise.
 
 module.exports = connectDB;
-

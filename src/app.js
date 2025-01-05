@@ -5,6 +5,8 @@ const connectDB = require("./config/database");
 const app = express();
 const User = require("./models/user"); //to import model we should not use {User}
 
+// connectDB.user.createIndex({ emailId: 1 }, { unique: true });
+
 //Adding a pre-defined middleware that convert the json object to javascript object for api calls.
 app.use(express.json()); //this app.use() will ensure this middleware to work for all path/type of api calls.
 
@@ -14,24 +16,28 @@ app.post("/signup", async (req, res) => {
   // console.log(req.body);
   const user = new User(req.body);
   try {
-    await user.save(); //user.save is a function that return a promise so we need to make the callback function as async.
+    //{ runValidators: true } this in user.save() will ensure emailId is of valid type.
+    await user.save({ runValidators: true }); //user.save is a function that return a promise so we need to make the callback function as async.
     res.send("User Add Successfully.");
   } catch (err) {
-    res.status(400).send("Error saving the user: ", +err.message);
+    if (err.code === 11000) {
+      res.status(400).send("Duplicate email ID found!");
+    } else {
+      res.status(400).send("Error saving the user: " + err.message);
+    }
   }
 });
 
 //Making a GET API, to filter database.
 app.get("/user", async (req, res) => {
-  const usersEmailId = req.body.emailId;
+  const usersEmail = req.body.emailId;
   try {
-    const users = await User.findOne({ emailId: usersEmailId }); //findOne will give the first matched(basically one which was saved earlier) data only, find will give all the matched data present in database.
+    const user = await User.findOne({ emailId: usersEmail }); //findOne will give the first matched(basically one which was saved earlier) data only, find will give all the matched data present in database.
     // console.log(users);
-
-    if (users.length === 0) {
+    if (!user) {
       res.status(404).send("User not found!!");
     } else {
-      res.send(users);
+      res.send(user);
     }
   } catch (err) {
     res.status(400).send("Something went wrong!");
@@ -51,28 +57,58 @@ app.get("/feed", async (req, res) => {
 //API to delete a user.
 app.delete("/user", async (req, res) => {
   // console.log("userId => ", req.body);
-  const userId = req.body._id;
+  const userId = req.body.userId;
   try {
-    // const user = await User.findByIdAndDelete({ _id: userId });
-    const user = await User.findByIdAndDelete(userId); //same as above line.
-    res.status(200).send("User deleted successfully.");
+    const user = await User.findByIdAndDelete({ _id: userId });
+    // console.log("deleting user => ", user);
+    // const user = await User.findByIdAndDelete(userId); //same as above line.
+    if (user == null) {
+      res.status(404).send("User not found!");
+    } else {
+      res.status(200).send("User deleted successfully.");
+    }
   } catch (err) {
     res.status(400).send("Something went wrong!");
   }
 });
 
 //Patch API to update a user data.
-app.patch("/user", async (req, res) => {
-  const userEmailId = req.body.emailId;
-  const userEmailIdUpdate = req.body.updateEmail;
+app.patch("/user/:userId", async (req, res) => {
+  // const userEmailId = req.body.emailId;
+  const userId = req.params.userId;
+  const data = req.body;
   try {
-    const userUpdated = await User.updateOne(
-      { emailId: userEmailId },
-      { emailId: userEmailIdUpdate }
+    //Do sanitization of data.
+    const ALLOWED_UPDATES = [
+      "userId",
+      "skills",
+      "photoUrl",
+      "about",
+      "gender",
+      "age",
+    ];
+    const isUpdateAllowed = Object.keys(data).every((key) =>
+      ALLOWED_UPDATES.includes(key)
     );
-    res.send("User email updated successfully.");
+    if (!isUpdateAllowed) {
+      throw new Error("Update not allowed.");
+    }
+    const updatedUser = await User.findByIdAndUpdate({ _id: userId }, data, {
+      returnDocument: "after",
+      runValidators: true,
+    });
+    if (updatedUser.skills.length > 10) {
+      throw new Error("Choose maximum skills upto 10.");
+    }
+    // console.log(updatedUser);
+    if (!updatedUser) {
+      res.status(404).send("User not found!");
+    } else {
+      res.send("User updated successfully.");
+    }
   } catch (err) {
-    res.status(400).send("Something went wrong.");
+    // res.status(400).send("Something went wrong.");
+    res.status(400).send("UPDATE FAILED: " + err.message);
   }
 });
 
