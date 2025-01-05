@@ -1,17 +1,14 @@
 const express = require("express");
 const connectDB = require("./config/database");
-// require("./config/database"); //bcz of this database.js will also run when we run app.js
 const app = express();
 const User = require("./models/user"); //to import model we should not use {User}
 const bcrypt = require("bcrypt");
-const { validateSignupData } = require("./utils/validation");
-
-// connectDB.user.createIndex({ emailId: 1 }, { unique: true });
+const { validateSignupData, validateLoginData } = require("./utils/validation");
 
 //Adding a pre-defined middleware that convert the json object to javascript object for api calls.
 app.use(express.json()); //this app.use() will ensure this middleware to work for all path/type of api calls.
 
-//Making a POST request to save data into database/.
+//Making a POST request to save data into database/.(SignUp API)
 app.post("/signup", async (req, res) => {
   // Creating a new instance of user model with data.
   try {
@@ -19,7 +16,7 @@ app.post("/signup", async (req, res) => {
     validateSignupData(req);
 
     // Encrypting the password
-    const { firstName, lastName, emailId, password } = req.body;
+    const { firstName, lastName, emailId, password, skills } = req.body;
     const passwordHash = await bcrypt.hash(password, 10);
     console.log(passwordHash);
 
@@ -29,6 +26,7 @@ app.post("/signup", async (req, res) => {
       firstName,
       lastName,
       emailId,
+      skills,
       password: passwordHash,
     });
 
@@ -41,6 +39,29 @@ app.post("/signup", async (req, res) => {
     } else {
       res.status(400).send("ERROR : " + err.message);
     }
+  }
+});
+
+//Making login API
+app.post("/login", async (req, res) => {
+  try {
+    validateLoginData(req);
+    const { emailId, password } = req.body;
+    const user = await User.findOne({ emailId });
+    if (!user) {
+      // throw new Error("EmailId not present in Database.");
+      throw new Error("Invalid credentials"); //Don't expose your database.
+    }
+    const isPasswordValid = await bcrypt.compare(password, user.password); //bcrypt.compare(userenteredPassword, HashPasswordInDatabase)
+
+    if (isPasswordValid) {
+      res.send("User login successful!!");
+    } else {
+      // throw new Error("Password is not correct.");
+      throw new Error("Invalid credentials"); //Don't expose your database.
+    }
+  } catch (err) {
+    res.status(400).send("ERROR : " + err.message);
   }
 });
 
@@ -76,8 +97,6 @@ app.delete("/user", async (req, res) => {
   const userId = req.body.userId;
   try {
     const user = await User.findByIdAndDelete({ _id: userId });
-    // console.log("deleting user => ", user);
-    // const user = await User.findByIdAndDelete(userId); //same as above line.
     if (user == null) {
       res.status(404).send("User not found!");
     } else {
@@ -90,11 +109,10 @@ app.delete("/user", async (req, res) => {
 
 //Patch API to update a user data.
 app.patch("/user/:userId", async (req, res) => {
-  // const userEmailId = req.body.emailId;
   const userId = req.params.userId;
   const data = req.body;
   try {
-    //Do sanitization of data.
+    //Doing sanitization of data.
     const ALLOWED_UPDATES = ["skills", "photoUrl", "about", "gender", "age"];
     const isUpdateAllowed = Object.keys(data).every((key) =>
       ALLOWED_UPDATES.includes(key)
@@ -109,14 +127,12 @@ app.patch("/user/:userId", async (req, res) => {
     if (updatedUser.skills.length > 10) {
       throw new Error("Choose maximum skills upto 10.");
     }
-    // console.log(updatedUser);
     if (!updatedUser) {
       res.status(404).send("User not found!");
     } else {
       res.send("User updated successfully.");
     }
   } catch (err) {
-    // res.status(400).send("Something went wrong.");
     res.status(400).send("UPDATE FAILED: " + err.message);
   }
 });
@@ -131,55 +147,3 @@ connectDB()
   .catch((err) => {
     console.error("Database cannot be connected!!");
   });
-
-// All below code was for lerning concepts upto lecture 18.
-// const express = require("express");
-
-// const app = express(); //creating a new expressjs application/web-server.
-
-// //code To handle the request on the server(requestHandler function).
-// // app.use((req, res) => {
-// //   res.send("Hello from the server.");
-// // });
-
-// // This app.get() will only handle GET call to /user
-// app.get("/user", (req, res) => {
-//   // res.send("user data is fetched.");
-//   console.log(req.query);//how we read query parameter.
-//   res.send({ firstName: "Moaaz", lastName: "Ahmed" });
-// });
-
-// // To make POST method.
-// app.post("/user", (req, res) => {
-//   //Save Data to the database.
-//   res.send("Data successfully saved to the database.");
-// });
-
-// // To make DELETE method.
-// app.delete("/user", (req, res) => {
-//   res.send("Data deleted from the database.");
-// });
-
-// // To make PATCH method.
-// app.patch("/user", (req, res) => {
-//   res.send("PATCH method is called to update the data.");
-// });
-// // we can set the route path also, This(app.use()) will match all the HTTP method API call to /test
-// app.use("/test", (req, res) => {
-//   res.send("Hello from the test server.");
-// });
-
-// // app.use("/home", (req, res) => {
-// //   res.send("Hello from the home!");
-// // });
-// // app.use("/hello", (req, res) => {
-// //   res.send("Hello hello hello!");
-// // });
-// // app.use("/", (req, res) => {
-// //   res.send("Hello from the Dashboard!");
-// // });
-
-// // code to listen the server.
-// app.listen(3000, () => {
-//   console.log("Server is successfully on port 3000..");
-// }); //creating a port to listen the request.

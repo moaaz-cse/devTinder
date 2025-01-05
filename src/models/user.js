@@ -20,10 +20,6 @@ const userSchema = new mongoose.Schema(
       trim: true,
       unique: true,
       validate(value) {
-        // const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        // if (!emailPattern.test(value)) {
-        //   throw new Error("Please enter a valid emailId.");
-        // }
         if (!validator.isEmail(value)) {
           throw new Error("Invalid email address " + value);
         }
