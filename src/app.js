@@ -16,8 +16,8 @@ app.post("/signup", async (req, res) => {
   // console.log(req.body);
   const user = new User(req.body);
   try {
-    //{ runValidators: true } this in user.save() will ensure emailId is of valid type.
-    await user.save({ runValidators: true }); //user.save is a function that return a promise so we need to make the callback function as async.
+    //{ runValidators: true } this in user.save() will ensure emailId is of valid type. Removed as in user.js(models) have used npm validator.
+    await user.save(); //user.save is a function that return a promise so we need to make the callback function as async.
     res.send("User Add Successfully.");
   } catch (err) {
     if (err.code === 11000) {
@@ -80,7 +80,6 @@ app.patch("/user/:userId", async (req, res) => {
   try {
     //Do sanitization of data.
     const ALLOWED_UPDATES = [
-      "userId",
       "skills",
       "photoUrl",
       "about",

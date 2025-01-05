@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const validator = require("validator"); //importing npm validator.
 
 //Schema is created
 const userSchema = new mongoose.Schema(
@@ -19,9 +20,12 @@ const userSchema = new mongoose.Schema(
       trim: true,
       unique: true,
       validate(value) {
-        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailPattern.test(value)) {
-          throw new Error("Please enter a valid emailId.");
+        // const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        // if (!emailPattern.test(value)) {
+        //   throw new Error("Please enter a valid emailId.");
+        // }
+        if (!validator.isEmail(value)) {
+          throw new Error("Invalid email address " + value);
         }
       },
     },
@@ -29,6 +33,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       minLength: 8,
+      validate(value) {
+        if (!validator.isStrongPassword(value)) {
+          throw new Error("Enter a strong password: " + value);
+        }
+      },
     },
     age: {
       type: Number,
@@ -46,6 +55,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       default:
         "https://as2.ftcdn.net/v2/jpg/00/65/77/27/1000_F_65772719_A1UV5kLi5nCEWI0BNLLiFaBPEkUbv5Fv.jpg",
+      validate(value) {
+        if (!validator.isURL(value)) {
+          throw new Error("Invalid photo url: " + value);
+        }
+      },
     },
     about: {
       type: String,
