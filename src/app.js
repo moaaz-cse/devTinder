@@ -6,6 +6,7 @@ const bcrypt = require("bcrypt");
 const { validateSignupData, validateLoginData } = require("./utils/validation");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
+const { userAuth } = require("./middlewares/Auth");
 
 //Adding a pre-defined middleware that convert the json object to javascript object for api calls.
 app.use(express.json()); //this app.use() will ensure this middleware to work for all path/type of api calls.
@@ -59,10 +60,14 @@ app.post("/login", async (req, res) => {
 
     if (isPasswordValid) {
       // Create a JWT Token
-      const token = jwt.sign({ _id: user._id }, "DEV@TINDER0212");
+      const token = jwt.sign({ _id: user._id }, "DEV@TINDER0212", {
+        expiresIn: "7d", //token will be expired in 7days,we can use 1h for 1 hour.
+      });
 
       // Add the token to cookie and send the response back to the user.
-      res.cookie("token", token);
+      res.cookie("token", token, {
+        expires: new Date(Date.now() + 8 * 3600000), //cookies will expired in 8 hours
+      });
       res.send("User login successful!!");
     } else {
       // throw new Error("Password is not correct.");
@@ -73,100 +78,23 @@ app.post("/login", async (req, res) => {
   }
 });
 
-//Making get request for profile using JWT wrapped inside cookie.
-app.get("/profile", async (req, res) => {
+//Making get request for profile using userAuth that has JWT wrapped inside.
+app.get("/profile", userAuth, async (req, res) => {
+  //in this API the userAuth middle ware will run first, then in that function the next() will be called after which this callback function will execute.
   try {
-    const cookies = req.cookies; //req.cookies will give back all the cookies.
-
-    const { token } = cookies;
-    if (!token) {
-      throw new Error("Invalid token.");
-    }
-    //Validate my token.
-    const decodedMessage = await jwt.verify(token, "DEV@TINDER0212"); // It return promise, this decodedMessage will contain {_id:354354sdas64,iat:534354} "iat" is something created by jwt.
-    const { _id } = decodedMessage;
-
-    //getting the user with the help of decoded id.
-    const user = await User.findById(_id);
-    if (!user) {
-      throw new Error("User does not exists.");
-    }
+    const user = req.user;
     res.send(user);
   } catch (err) {
     res.status(400).send("ERROR : " + err.message);
   }
 });
 
-//Making a GET API, to filter database.
-app.get("/user", async (req, res) => {
-  const usersEmail = req.body.emailId;
-  try {
-    const user = await User.findOne({ emailId: usersEmail }); //findOne will give the first matched(basically one which was saved earlier) data only, find will give all the matched data present in database.
-    // console.log(users);
-    if (!user) {
-      res.status(404).send("User not found!!");
-    } else {
-      res.send(user);
-    }
-  } catch (err) {
-    res.status(400).send("Something went wrong!");
-  }
-});
-
-// Feed API - GET/feed -get all user form the database.
-app.get("/feed", async (req, res) => {
-  try {
-    const users = await User.find({});
-    res.send(users);
-  } catch (err) {
-    res.status(400).send("Something went wrong!");
-  }
-});
-
-//API to delete a user.
-app.delete("/user", async (req, res) => {
-  // console.log("userId => ", req.body);
-  const userId = req.body.userId;
-  try {
-    const user = await User.findByIdAndDelete({ _id: userId });
-    if (user == null) {
-      res.status(404).send("User not found!");
-    } else {
-      res.status(200).send("User deleted successfully.");
-    }
-  } catch (err) {
-    res.status(400).send("Something went wrong!");
-  }
-});
-
-//Patch API to update a user data.
-app.patch("/user/:userId", async (req, res) => {
-  const userId = req.params.userId;
-  const data = req.body;
-  try {
-    //Doing sanitization of data.
-    const ALLOWED_UPDATES = ["skills", "photoUrl", "about", "gender", "age"];
-    const isUpdateAllowed = Object.keys(data).every((key) =>
-      ALLOWED_UPDATES.includes(key)
-    );
-    if (!isUpdateAllowed) {
-      throw new Error("Update not allowed.");
-    }
-    const updatedUser = await User.findByIdAndUpdate({ _id: userId }, data, {
-      returnDocument: "after",
-      runValidators: true,
-    });
-    if (updatedUser.skills.length > 10) {
-      throw new Error("Choose maximum skills upto 10.");
-    }
-    if (!updatedUser) {
-      res.status(404).send("User not found!");
-    } else {
-      res.send("User updated successfully.");
-    }
-  } catch (err) {
-    res.status(400).send("UPDATE FAILED: " + err.message);
-  }
+//API to send connection request with initial validation by userAuth.
+app.post("/sendConnectionRequest", userAuth, async (req, res) => {
+  const user = req.user;
+  //Sending a connection request.
+  // console.log("Connection is sent by: ", user.firstName);
+  res.send(user.firstName + " has sent the connection request.");
 });
 
 connectDB()
@@ -179,3 +107,75 @@ connectDB()
   .catch((err) => {
     console.error("Database cannot be connected!!");
   });
+
+//   //Making a GET API, to filter database.
+// app.get("/user", async (req, res) => {
+//   const usersEmail = req.body.emailId;
+//   try {
+//     const user = await User.findOne({ emailId: usersEmail }); //findOne will give the first matched(basically one which was saved earlier) data only, find will give all the matched data present in database.
+//     // console.log(users);
+//     if (!user) {
+//       res.status(404).send("User not found!!");
+//     } else {
+//       res.send(user);
+//     }
+//   } catch (err) {
+//     res.status(400).send("Something went wrong!");
+//   }
+// });
+
+// // Feed API - GET/feed -get all user form the database.
+// app.get("/feed", async (req, res) => {
+//   try {
+//     const users = await User.find({});
+//     res.send(users);
+//   } catch (err) {
+//     res.status(400).send("Something went wrong!");
+//   }
+// });
+
+// //API to delete a user.
+// app.delete("/user", async (req, res) => {
+//   // console.log("userId => ", req.body);
+//   const userId = req.body.userId;
+//   try {
+//     const user = await User.findByIdAndDelete({ _id: userId });
+//     if (user == null) {
+//       res.status(404).send("User not found!");
+//     } else {
+//       res.status(200).send("User deleted successfully.");
+//     }
+//   } catch (err) {
+//     res.status(400).send("Something went wrong!");
+//   }
+// });
+
+// //Patch API to update a user data.
+// app.patch("/user/:userId", async (req, res) => {
+//   const userId = req.params.userId;
+//   const data = req.body;
+//   try {
+//     //Doing sanitization of data.
+//     const ALLOWED_UPDATES = ["skills", "photoUrl", "about", "gender", "age"];
+//     const isUpdateAllowed = Object.keys(data).every((key) =>
+//       ALLOWED_UPDATES.includes(key)
+//     );
+//     if (!isUpdateAllowed) {
+//       throw new Error("Update not allowed.");
+//     }
+//     const updatedUser = await User.findByIdAndUpdate({ _id: userId }, data, {
+//       returnDocument: "after",
+//       runValidators: true,
+//     });
+//     if (updatedUser.skills.length > 10) {
+//       throw new Error("Choose maximum skills upto 10.");
+//     }
+//     if (!updatedUser) {
+//       res.status(404).send("User not found!");
+//     } else {
+//       res.send("User updated successfully.");
+//     }
+//   } catch (err) {
+//     res.status(400).send("UPDATE FAILED: " + err.message);
+//   }
+// });
