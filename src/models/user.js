@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const validator = require("validator"); //importing npm validator.
-
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
 //Schema is created
 const userSchema = new mongoose.Schema(
   {
@@ -71,4 +72,23 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+//Logic for creating JWT
+userSchema.methods.getJWT = async function () {
+  const user = this; //"this" will not work under arrow function, So don't make it an arrow function.
+  const token = await jwt.sign({ _id: user._id }, "DEV@TINDER0212", {
+    expiresIn: "7d", //token will be expired in 7days,we can use 1h for 1 hour.
+  });
+  return token;
+};
+
+//Logic to verify the password
+userSchema.methods.validatePassword = async function (passwordInputByUser) {
+  const user = this;
+  const passwordHash = user.password;
+  const isPasswordValid = await bcrypt.compare(
+    passwordInputByUser,
+    passwordHash
+  ); //bcrypt.compare(userenteredPassword, HashPasswordInDatabase)
+  return isPasswordValid;
+};
 module.exports = mongoose.model("User", userSchema); //will return model naming User.

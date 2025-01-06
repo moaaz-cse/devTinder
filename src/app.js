@@ -22,7 +22,7 @@ app.post("/signup", async (req, res) => {
     // Encrypting the password
     const { firstName, lastName, emailId, password, skills } = req.body;
     const passwordHash = await bcrypt.hash(password, 10);
-    console.log(passwordHash);
+    // console.log(passwordHash);
 
     // console.log(req.body);
     // const user = new User(req.body);
@@ -49,20 +49,18 @@ app.post("/signup", async (req, res) => {
 //Making login API
 app.post("/login", async (req, res) => {
   try {
-    validateLoginData(req);
+    // validateLoginData(req);
     const { emailId, password } = req.body;
-    const user = await User.findOne({ emailId });
+    const user = await User.findOne({ emailId: emailId });
     if (!user) {
       // throw new Error("EmailId not present in Database.");
       throw new Error("Invalid credentials"); //Don't expose your database.
     }
-    const isPasswordValid = await bcrypt.compare(password, user.password); //bcrypt.compare(userenteredPassword, HashPasswordInDatabase)
+    const isPasswordValid = await user.validatePassword(password);
 
     if (isPasswordValid) {
       // Create a JWT Token
-      const token = jwt.sign({ _id: user._id }, "DEV@TINDER0212", {
-        expiresIn: "7d", //token will be expired in 7days,we can use 1h for 1 hour.
-      });
+      const token = await user.getJWT(); //offladed jwt logic to SchemaMethod in user.js file under utils.
 
       // Add the token to cookie and send the response back to the user.
       res.cookie("token", token, {
