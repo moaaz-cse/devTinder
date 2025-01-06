@@ -4,9 +4,12 @@ const app = express();
 const User = require("./models/user"); //to import model we should not use {User}
 const bcrypt = require("bcrypt");
 const { validateSignupData, validateLoginData } = require("./utils/validation");
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
 
 //Adding a pre-defined middleware that convert the json object to javascript object for api calls.
 app.use(express.json()); //this app.use() will ensure this middleware to work for all path/type of api calls.
+app.use(cookieParser()); //this cookie-parser is a middleware that will convert cookie data into javascript json type.
 
 //Making a POST request to save data into database/.(SignUp API)
 app.post("/signup", async (req, res) => {
@@ -55,11 +58,40 @@ app.post("/login", async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.password); //bcrypt.compare(userenteredPassword, HashPasswordInDatabase)
 
     if (isPasswordValid) {
+      // Create a JWT Token
+      const token = jwt.sign({ _id: user._id }, "DEV@TINDER0212");
+
+      // Add the token to cookie and send the response back to the user.
+      res.cookie("token", token);
       res.send("User login successful!!");
     } else {
       // throw new Error("Password is not correct.");
       throw new Error("Invalid credentials"); //Don't expose your database.
     }
+  } catch (err) {
+    res.status(400).send("ERROR : " + err.message);
+  }
+});
+
+//Making get request for profile using JWT wrapped inside cookie.
+app.get("/profile", async (req, res) => {
+  try {
+    const cookies = req.cookies; //req.cookies will give back all the cookies.
+
+    const { token } = cookies;
+    if (!token) {
+      throw new Error("Invalid token.");
+    }
+    //Validate my token.
+    const decodedMessage = await jwt.verify(token, "DEV@TINDER0212"); // It return promise, this decodedMessage will contain {_id:354354sdas64,iat:534354} "iat" is something created by jwt.
+    const { _id } = decodedMessage;
+
+    //getting the user with the help of decoded id.
+    const user = await User.findById(_id);
+    if (!user) {
+      throw new Error("User does not exists.");
+    }
+    res.send(user);
   } catch (err) {
     res.status(400).send("ERROR : " + err.message);
   }
