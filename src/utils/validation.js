@@ -18,6 +18,16 @@ const validateLoginData = (req) => {
     throw new Error("Please enter a valid password.");
   }
 };
+const validatePasswordUpdateData = (req) => {
+  const { emailId, age, newPassword } = req.body;
+  if (!validator.isEmail(emailId)) {
+    throw new Error("Email is not valid!");
+  } else if (!validator.isStrongPassword(newPassword)) {
+    throw new Error("Please enter a valid password.");
+  } else if (!validator.isNumeric(age)) {
+    throw new Error("Please enter avalid age.");
+  }
+};
 
 const validateEditProfileData = (req) => {
   const allowedEditFields = [
@@ -39,4 +49,5 @@ module.exports = {
   validateSignupData,
   validateLoginData,
   validateEditProfileData,
+  validatePasswordUpdateData
 };

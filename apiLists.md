@@ -16,6 +16,8 @@
 
 - POST/request/send/intrested/:userID
 - POST/request/send/ignore/:userID
+- POST/request/send/:status/:userID -> this way we can make the above two api as one dynamic api.
+
 - POST/request/review/accepted/:requestId
 - POST/request/review/rejected/:requestID
 

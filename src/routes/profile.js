@@ -1,8 +1,12 @@
 const express = require("express");
 const User = require("../models/user");
 const profileRouter = express.Router();
+const bcrypt = require("bcrypt");
 const { userAuth } = require("../middlewares/auth");
-const { validateEditProfileData } = require("../utils/validation");
+const {
+  validateEditProfileData,
+  validatePasswordUpdateData,
+} = require("../utils/validation");
 
 //Making get request for profile using userAuth that has JWT wrapped inside.
 profileRouter.get("/profile/view", userAuth, async (req, res) => {
@@ -34,6 +38,29 @@ profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
     });
   } catch (err) {
     res.status(400).send("ERROR: " + err.message);
+  }
+});
+
+//Making AP for forget password
+profileRouter.post("/profile/password", async (req, res) => {
+  try {
+    const { emailId, age, newPassword } = req.body;
+    const requestedUser = await User.findOne({ emailId: emailId, age: age });
+    if (!requestedUser) {
+      throw new Error("User does not exsits");
+    }
+    validatePasswordUpdateData(req);
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    requestedUser.password = newPasswordHash;
+    await requestedUser.save();
+    res.json({
+      message: "Successfully updated password.",
+      data: requestedUser,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: `Update unsuccessful,  ${err.message}`,
+    });
   }
 });
 module.exports = profileRouter;
