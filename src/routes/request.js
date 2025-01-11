@@ -66,4 +66,43 @@ requestRouter.post(
   }
 );
 
+// API to review/responde to a request
+requestRouter.post(
+  "/request/review/:status/:requestId",
+  userAuth,
+  async (req, res) => {
+    const loggedInUser = req.user;
+    const { status, requestId } = req.params;
+
+    // validate the status
+    const allowedStatus = ["accepted", "rejected"];
+    if (!allowedStatus.includes(status)) {
+      return res.status(400).json({ message: "Status not allowed!" });
+    }
+
+    // checking that the request exsits in the database
+    const connectionRequest = await ConnectionRequest.findOne({
+      fromUserId: requestId,
+      toUserId: loggedInUser._id,
+      status: "interested",
+    });
+    if (!connectionRequest) {
+      return res.status(404).json({ message: "Connection request not find." });
+    }
+    // updating the status.
+    connectionRequest.status = status;
+    const data = await connectionRequest.save();
+    res.json({ message: "Connection is " + status, data });
+    // Moaaz->Zaki
+    // loggedInUser -> toUserId
+    // request Id should be valid
+
+    try {
+    } catch (err) {
+      res.status(400).send("ERROR: " + err.message);
+    }
+  }
+);
+
+
 module.exports = requestRouter;
