@@ -1,7 +1,13 @@
 const express = require("express");
 const connectDB = require("./config/database");
 const app = express();
-const User = require("./models/user"); //to import model we should not use {User}
+const cors = require("cors");
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 
 //Adding a pre-defined middleware that convert the json object to javascript object for api calls.
 app.use(express.json()); //this app.use() will ensure this middleware to work for all path/type of api calls.

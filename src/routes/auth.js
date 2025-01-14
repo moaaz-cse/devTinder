@@ -65,7 +65,7 @@ authRouter.post("/login", async (req, res) => {
       res.cookie("token", token, {
         expires: new Date(Date.now() + 8 * 3600000), //cookies will expired in 8 hours
       });
-      res.send("User login successful!!");
+      res.send(user);
     } else {
       // throw new Error("Password is not correct.");
       throw new Error("Invalid credentials"); //Don't expose your database.

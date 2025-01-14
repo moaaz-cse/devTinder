@@ -51,10 +51,13 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
 });
 
 // Feed API- get you profile of other user on platform
-userRouter.get("/user/feed", userAuth, async (req, res) => {
+userRouter.get("/feed", userAuth, async (req, res) => {
   try {
     const loggedInUser = req.user;
-
+    const page = parseInt(req.query.page) || 1; // /feed?page=1&limit=10, parseInt bcz api-query is in string and we need integer value
+    let limit = parseInt(req.query.limit) || 10;
+    limit = limit > 50 ? 50 : limit;
+    const skip = (page - 1) * limit;
     // getting list of all connection
     const connectionRequest = await ConnectionRequest.find({
       $or: [{ fromUserId: loggedInUser._id }, { toUserId: loggedInUser._id }],
@@ -73,7 +76,10 @@ userRouter.get("/user/feed", userAuth, async (req, res) => {
         { _id: { $nin: Array.from(hideUserFromFeed) } },
         { _id: { $ne: loggedInUser._id } },
       ],
-    }).select(USER_SAFE_DATA);
+    })
+      .select(USER_SAFE_DATA)
+      .skip(skip)
+      .limit(limit);
 
     res.json({ message: "Here is your feed list", data: users });
   } catch (err) {
