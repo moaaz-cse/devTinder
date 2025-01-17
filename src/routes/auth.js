@@ -8,7 +8,7 @@ authRouter.use(cookieParser()); //this cookie-parser is a middleware that will c
 
 const {
   validateLoginData,
-  validateSignupData,
+  validateSignUpData,
 } = require("../utils/validation");
 
 //Making a POST request to save data into database/.(SignUp API)
@@ -16,7 +16,7 @@ authRouter.post("/signup", async (req, res) => {
   // Creating a new instance of user model with data.
   try {
     //Valdation of data.
-    validateSignupData(req);
+    validateSignUpData(req);
 
     // Encrypting the password
     const { firstName, lastName, emailId, password, skills } = req.body;
@@ -34,8 +34,12 @@ authRouter.post("/signup", async (req, res) => {
     });
 
     //{ runValidators: true } this in user.save() will ensure emailId is of valid type. Removed as in user.js(models) have used npm validator.
-    await user.save(); //user.save is a function that return a promise so we need to make the callback function as async.
-    res.send("User Add Successfully.");
+    const savedUser = await user.save(); //user.save is a function that return a promise so we need to make the callback function as async.
+    const token = await savedUser.getJWT();
+    res.cookie("token", token, {
+      expires: new Date(Date.now() + 8 * 3600000),
+    });
+    res.json({ message: "User Added successfully!", data: savedUser });
   } catch (err) {
     if (err.code === 11000) {
       res.status(400).send("Duplicate email ID found!");

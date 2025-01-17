@@ -29,7 +29,7 @@ userRouter.get("/user/requests/received", userAuth, async (req, res) => {
 userRouter.get("/user/connections", userAuth, async (req, res) => {
   try {
     const loggedInUser = req.user;
-    const myConnectionList = await ConnectionRequest.find({
+    const connectionRequests = await ConnectionRequest.find({
       $or: [
         { toUserId: loggedInUser._id, status: "accepted" },
         { fromUserId: loggedInUser._id, status: "accepted" },
@@ -38,7 +38,7 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
       .populate("fromUserId", USER_SAFE_DATA)
       .populate("toUserId", USER_SAFE_DATA);
 
-    const data = myConnectionList.map((row) => {
+    const data = connectionRequests.map((row) => {
       if (row.fromUserId.toString() === loggedInUser._id.toString()) {
         return row.toUserId;
       }
@@ -46,7 +46,7 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
     });
     res.json({ data });
   } catch (err) {
-    res.status(400), send("ERROR: " + err.message);
+    res.status(400), send({ message: err.message });
   }
 });
 
@@ -83,7 +83,7 @@ userRouter.get("/feed", userAuth, async (req, res) => {
 
     res.json({ message: "Here is your feed list", data: users });
   } catch (err) {
-    res.status(400).send("ERROR: " + res.message);
+    res.status(400).json({ message: err.message });
   }
 });
 module.exports = userRouter;

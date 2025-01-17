@@ -1,6 +1,7 @@
 const express = require("express");
 const connectDB = require("./config/database");
 const app = express();
+// const cookieParser = require("cookie-parser");
 const cors = require("cors");
 app.use(
   cors({
@@ -11,6 +12,7 @@ app.use(
 
 //Adding a pre-defined middleware that convert the json object to javascript object for api calls.
 app.use(express.json()); //this app.use() will ensure this middleware to work for all path/type of api calls.
+// app.use(cookieParser());
 
 //Routing to coorect APIs
 const authRouter = require("./routes/auth");
