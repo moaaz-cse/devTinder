@@ -14,7 +14,7 @@ app.use(
 app.use(express.json()); //this app.use() will ensure this middleware to work for all path/type of api calls.
 // app.use(cookieParser());
 
-//Routing to coorect APIs
+//Routing to correct APIs
 const authRouter = require("./routes/auth");
 const profileRouter = require("./routes/profile");
 const requestRouter = require("./routes/request");
